@@ -14,7 +14,7 @@ namespace GovITHub.Auth.Admin
         {
             var host = new WebHostBuilder()
                 .UseKestrel()
-                .UseUrls("http://localhost:5002")
+                .UseUrls("http://+:5002")
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseStartup<Startup>()
                 .Build();
