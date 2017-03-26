@@ -42,7 +42,8 @@ namespace GovITHub.Auth.Admin
 
             services.
                 AddEntityFramework().
-                AddDbContext<ApplicationDbContext>(options => options.UseMySQL(mySqlConnectionString));
+				AddDbContext<ApplicationDbContext>(options => options.UseMySQL(mySqlConnectionString,
+					   b => b.MigrationsAssembly(migrationsAssembly)));
 
             services.AddMvc();
 

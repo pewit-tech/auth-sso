@@ -4,6 +4,8 @@ using IdentityServer4.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using MySQL.Data.Entity.Extensions;
+using Microsoft.Extensions.Configuration;
+using System.Reflection;
 
 /// <summary>
 /// Persisted grant extended
@@ -38,10 +40,24 @@ public class ExtendedPersistedGrantDbContext : PersistedGrantDbContext
     {
         public ExtendedPersistedGrantDbContext Create(DbContextFactoryOptions options)
         {
-            var builder = new DbContextOptionsBuilder<PersistedGrantDbContext>();
-            builder.UseMySQL("DefaultConnection");
-            return new ExtendedPersistedGrantDbContext(builder.Options,
-                new OperationalStoreOptions());
+            var builder = new ConfigurationBuilder()
+				.SetBasePath(options.ContentRootPath)
+				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+				.AddJsonFile("connectionstrings.json", optional: true, reloadOnChange: true)
+				.AddJsonFile($"appsettings.{options.EnvironmentName}.json", optional: true);
+
+			var config = builder.Build();
+
+			var mySqlConnectionString = config.GetConnectionString("DefaultConnection");
+
+			var optionsBuilder = new DbContextOptionsBuilder<PersistedGrantDbContext>();
+
+			var migrationsAssembly = typeof(ExtendedPersistedGrantDbContext).GetTypeInfo().Assembly.GetName().Name;
+
+			optionsBuilder.UseMySQL(mySqlConnectionString, opts => opts.MigrationsAssembly(migrationsAssembly));
+
+			return new ExtendedPersistedGrantDbContext(optionsBuilder.Options,
+				new OperationalStoreOptions());
         }
     }
 }

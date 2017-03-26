@@ -6,40 +6,58 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using MySQL.Data.Entity.Extensions;
 using Localization.SqlLocalizer.DbStringLocalizer;
+using System;
+using Microsoft.Extensions.Configuration;
 
 namespace GovITHub.Auth.Common.Data
 {
-    public class ApplicationDbContextFactory : IDbContextFactory<ApplicationDbContext>
+	public abstract class GenericDbContextFactory<TContext> : IDbContextFactory<TContext>
+		where TContext : DbContext
     {
-        public ApplicationDbContext Create(DbContextFactoryOptions options)
+		public TContext Create(DbContextFactoryOptions options)
         {
-            var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();           
-            optionsBuilder.UseMySQL("DefaultConnection;");
+			var builder = new ConfigurationBuilder()
+				.SetBasePath(options.ContentRootPath)
+				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+				.AddJsonFile("connectionstrings.json", optional: true, reloadOnChange: true)
+				.AddJsonFile($"appsettings.{options.EnvironmentName}.json", optional: true);
 
-            return new ApplicationDbContext(optionsBuilder.Options);
+			var config = builder.Build();
+
+			var mySqlConnectionString = config.GetConnectionString("DefaultConnection");
+
+			var optionsBuilder = new DbContextOptionsBuilder<TContext>();
+
+			var migrationsAssembly = typeof(TContext).GetTypeInfo().Assembly.GetName().Name;
+
+			optionsBuilder.UseMySQL(mySqlConnectionString, opts => opts.MigrationsAssembly(migrationsAssembly));
+
+			return CreateInstance(optionsBuilder.Options);
         }
+
+		protected abstract TContext CreateInstance(DbContextOptions<TContext> options);
     }
 
-    public class ConfigurationDbContextFactory : IDbContextFactory<ConfigurationDbContext>
-    {
-        public ConfigurationDbContext Create(DbContextFactoryOptions options)
-        {
-            var optionsBuilder = new DbContextOptionsBuilder<ConfigurationDbContext>();
-            var migrationsAssembly = typeof(ApplicationUser).GetTypeInfo().Assembly.GetName().Name;
-            optionsBuilder.UseMySQL("DefaultConnection;", opts => opts.MigrationsAssembly(migrationsAssembly));
+	public class ApplicationDbContextFactory : GenericDbContextFactory<ApplicationDbContext>
+	{
+		protected override ApplicationDbContext CreateInstance(DbContextOptions<ApplicationDbContext> options)
+		{
+			return new ApplicationDbContext(options);
+		}
+	}
 
-            return new ConfigurationDbContext(optionsBuilder.Options, new ConfigurationStoreOptions());
-        }
+	public class ConfigurationDbContextFactory : GenericDbContextFactory<ConfigurationDbContext>
+    {
+        protected override ConfigurationDbContext CreateInstance(DbContextOptions<ConfigurationDbContext> options)
+		{
+			return new ConfigurationDbContext(options, new ConfigurationStoreOptions());
+		}
     }
-    public class LocalizationDbContextFactory : IDbContextFactory<LocalizationModelContext>
+	public class LocalizationDbContextFactory : GenericDbContextFactory<LocalizationModelContext>
     {
-        public LocalizationModelContext Create(DbContextFactoryOptions options)
-        {
-            var optionsBuilder = new DbContextOptionsBuilder<LocalizationModelContext>();
-            var migrationsAssembly = typeof(ApplicationUser).GetTypeInfo().Assembly.GetName().Name;
-            optionsBuilder.UseMySQL("DefaultConnection;", opts => opts.MigrationsAssembly(migrationsAssembly));
-
-            return new LocalizationModelContext(optionsBuilder.Options);
-        }
+        protected override LocalizationModelContext CreateInstance(DbContextOptions<LocalizationModelContext> options)
+		{
+			return new LocalizationModelContext(options);
+		}
     }
 }

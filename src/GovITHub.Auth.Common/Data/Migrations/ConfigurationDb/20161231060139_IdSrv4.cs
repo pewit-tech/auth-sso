@@ -9,10 +9,9 @@ namespace GovITHub.Auth.Common.Data.Migrations.ConfigurationDb
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
-                name: "AlwaysIncludeUserClaimsInIdToken",
-                table: "Clients",
-                nullable: false,
-                defaultValue: false);
+				name: "AlwaysIncludeUserClaimsInIdToken",
+				table: "Clients",
+				nullable: false);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
